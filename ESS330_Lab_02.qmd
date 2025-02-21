@@ -1,0 +1,153 @@
+---
+title: "Lab_02"
+format: html
+editor: visual
+---
+
+---
+title: "Lab 2"
+author: Olivia Gilpin
+format: html
+editor: visual
+---
+
+```{r}
+library(dplyr)
+tree_dat <- read.csv("tree_dat.csv")
+```
+
+#1: The structure of the data is to track tree growth over time and each row is representing annual measurements for an individual tree, with columns broken down into tree identification features. 
+```{r}
+tree_dat
+glimpse(tree_dat)
+```
+
+#2: The amount of records made in stand one is 979. 
+```{r}
+tree_dat %>% filter(standID == 1) %>% tally()
+```
+#3: The amount of records for Abies balsamea is 13,033 and for Pinus strobus 4,188 species have been made. 
+```{r}
+tree_dat %>% filter(species %in% c("ABBA", "PIST")) %>% count(species)
+```
+#4: The amount of trees that are older then 200 years old in the last year of the dataset is 7. 
+```{r}
+last_year <- max(tree_dat$year, na.rm = TRUE)
+tree_dat %>% filter(year ==last_year, age > 200) %>% tally()
+```
+#5: The oldest tree in the dataset found using slice_ma is treeID 24, tandID2, standA2, species PIRE = Pinus resinosa. 
+```{r}
+tree_dat %>% slice_max(order_by = age, n = 1)
+```
+#6:The oldest 5 trees recorded in 2001 are species Fraxinus nigra and Pinus resinosa, TreeID 24, 25, 1595, 1598, and 1712. 
+```{r}
+tree_dat %>% filter(year == 2001) %>% slice_max(order_by = age, n = 5)
+```
+#7: There are 687 trees are in a 30% sample of those recorded in 2002. 
+```{r}
+tree_dat %>% filter(year == 2002) %>% slice_sample(prop = 0.3) 
+tree_dat %>% 
+  filter(year == 2002) %>% 
+  slice_sample(prop = 0.3) %>% 
+  nrow()
+```
+#8: The tree IDs for all trees in stand 5 in 2007 are 128, 157, and 135. 
+```{r}
+tree_dat %>% filter(year == 2005, standID == 5) %>% arrange(desc(rad_ib)) %>% slice_head(n = 3)
+```
+
+
+#9: The smallest three trees meaured in 2007 are treeID 50, 56, and 36. 
+```{r}
+tree_dat %>% select(treeID, standID, year, rad_ib) %>% filter(standID == 3, year == 2007) %>% slice_min(order_by = rad_ib, n = 3)
+```
+#10: I used select to remove the stand column and used glimspe to show the dataset.
+
+```{r}
+tree_dat_modified <- tree_dat %>% select(-standID)
+glimpse(tree_dat_modified)
+```
+#11: The dplyr::select could be used to input contains("ID") to help select columns. 
+```{r}
+tree_id_mod <- tree_dat %>% select(matches("ID"))
+glimpse(tree_id_mod)
+```
+#12: I used the option stated in question 11 in 12 to capture columns with ID in the name. 
+```{r}
+tree_12_mod <- tree_dat %>% select(contains("ID") |contains("stand"))
+glimpse(tree_12_mod)
+```
+#13: In order to make this permanent, I reassignned the dataset through modification with the <- and this ensures that permanent change. 
+```{r}
+tree_dat <- tree_dat %>% rename(rad_ib_mm = rad_ib, inc_mm = inc)
+glimpse(tree_dat)
+```
+#14: The mean BA_m2 of the the species POTR in 2007 is 0.037. 
+```{r}
+tree_dat <- tree_dat %>% mutate(rad_ib_cm = rad_ib_mm / 10, DBH_cm = 2 * rad_ib_cm, BA_m2 = 0.00007854 * (DBH_cm^2))
+mean_BA_POTR_2007 <- tree_dat %>% filter(species == "POTR", year == 2007) %>% summarise(mean_BA_POTR_2007 = mean(BA_m2, na.rm = TRUE))
+print(mean_BA_POTR_2007)
+```
+#15: I determined how many records are from estabilshed trees, with true equalling 122,503. 
+```{r}
+tree_dat <- tree_dat %>% mutate(established = if_else(age > 5, TRUE, FALSE))
+established_count <- tree_dat %>% count(established)
+print(established_count)
+```
+#16: Limiting my dataset to the year 2007, the number of each class with count is 1,963 for DBH class pole, 252 for DBH class sapling, and 76 for DBH classs sawlog. 
+```{r}
+tree_dat <- tree_dat %>% mutate(DBH_class = case_when(DBH_cm < 2.5 ~ "seedling", DBH_cm >= 2.5 & DBH_cm < 10 ~ "sapling", DBH_cm >= 10 & DBH_cm < 30 ~ "pole", DBH_cm >= 30 ~ "sawlog"))
+tree_dat_2007 <- tree_dat %>% filter(year == 2007)
+tree_class_count <- tree_dat_2007 %>% count(DBH_class)
+print(tree_class_count)
+```
+#17: The DBH and DBH standard deviaition vales indicate the average diameter of the trees and the variation around the mean. 
+```{r}
+DBH_stats <- tree_dat_2007 %>% summarise(mean_DBH = mean(DBH_cm, na.rm = TRUE), sd_DBH = sd(DBH_cm, na.rm = TRUE))
+print(DBH_stats)
+```
+#18: The three species with the oldest mean age are THOC, FRNI, and PIST. 
+
+```{r}
+tree_dat_2003 <- tree_dat %>% filter(year ==2003)
+species_age_stats <- tree_dat_2003 %>% group_by(species) %>%
+  summarise(mean_age = mean(age, na.rm = TRUE)) %>% arrange(desc(mean_age))
+species_age_stats %>% top_n(3, mean_age)
+print(species_age_stats)
+```
+#19: The number of unique years with records in the data set is 111, the first  year being 1897 and last year recorded 2007.
+```{r}
+year_summary <- tree_dat %>% summarise(unique_years = n_distinct(year), first_year = min(year, na.rm = TRUE), last_year = max(year, na.rm = TRUE))
+print(year_summary)
+```
+# 20: The stands with largest (or tied with the largest) temporal record are 1, 15, 16, 17, and 24. 
+```{r}
+stand_year_count <- tree_dat %>% group_by(standID) %>% summarise(unique_years = n_distinct(year)) %>% ungroup()
+
+max_unique_years <- stand_year_count %>% summarise(max_years = max(unique_years)) %>% pull(max_years)
+
+stands_with_largest_record <- stand_year_count %>% filter(unique_years == max_unique_years)
+
+print(stands_with_largest_record)
+```
+#Final question: The three species with the fastest growth are THOC, PIRE, and POTR, while the three species with the slowest growth are ABBA, PIGL, and ACRU.
+```{r}
+tree_growth <- tree_dat %>% arrange(standID, year) %>% group_by(standID) %>% mutate(annual_growth = DBH_cm - lag(DBH_cm)) %>% filter(!is.na(annual_growth))
+
+tree_growth_filtered <- tree_growth %>% group_by(standID) %>% filter(n() >= 10)
+
+species_growth_stats <- tree_growth_filtered %>% group_by(species) %>% summarise(avg_annual_growth = mean(annual_growth, na.rm = TRUE), sd_annual_growth = sd(annual_growth, na.rm = TRUE))  
+
+fastest_growth_species <- species_growth_stats %>% slice_max(order_by = avg_annual_growth, n = 3)
+slowest_growth_species <- species_growth_stats %>% slice_min(order_by = avg_annual_growth, n = 3)
+
+print(fastest_growth_species)
+print(slowest_growth_species)
+```
+
+#Image of the fastest growing species (replace 'your_image.png' with the actual filename)
+```{r}
+knitr::include_graphics("/Users/OliviaGilpin/Desktop/ESS330/img/Thuja_occidentalis.png")
+```
+![Thuja occidentalis - fastest growing species](img/Thuja_occidentalis.png)
+

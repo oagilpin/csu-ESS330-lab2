@@ -1,0 +1,254 @@
+---
+title: "lab02"
+format: html
+---
+
+---
+title: "Lab 2"
+author: Olivia Gilpin
+format: html
+editor: visual
+---
+
+```{r}
+install.packages("dplyr")
+library(dplyr)
+tree_dat <- read.csv("tree_dat.csv")
+tree_dat
+glimpse(tree_dat)
+# Question 1
+```
+
+```{r}
+# Question 2: Count the number of records in stand 1
+stand1_count <- tree_dat %>%
+  filter(standID == 1) %>%
+  count()
+
+print(stand1_count)
+```
+
+```{r}
+# Quesiton 3: Count the records for Abies balsamea (ABBA) and Pinus strobus (PIST)
+species_count <- tree_dat %>%
+  filter(species %in% c("ABBA", "PIST")) %>%
+  count(species)
+
+print(species_count)
+```
+
+```{r}
+# Question 4: Find the last year in the dataset
+last_year <- max(tree_dat$year, na.rm = TRUE)
+# Find the last year in the data set
+tree_dat %>%
+  filter(year == last_year, age > 200) %>%
+  tally()
+#  Count trees older than 200 years in the last year
+
+# max(tree_dat$year, na.rm = TRUE): Finds the last (most recent) year in the dataset
+ 
+
+# filter(year == last_year, age > 200): Filters rows where the year is the last year and age is great than 200
+
+```
+
+```{r}
+# Question 5: Find the oldest tree in the dataset using slice_max
+oldest_tree <- tree_dat %>%
+  slice_max(order_by = age, n = 1)
+
+print(oldest_tree)
+```
+
+```{r}
+# Question 6: Find the oldest 5 trees recorded in 2001
+oldest_5_trees_2001 <- tree_dat %>%
+  filter(year == 2001) %>%
+  slice_max(order_by = age, n = 5)
+
+print(oldest_5_trees_2001)
+```
+
+```{r}
+# Question 7: Take a 30% random sample of trees recorded in 2002
+sample_30_percent_2002 <- tree_dat %>%
+  filter(year == 2002) %>%
+  slice_sample(prop = 0.30)
+
+# View the sample size
+sample_size <- nrow(sample_30_percent_2002)
+print(sample_size)
+```
+
+```{r}
+# Question 8: Filter trees in stand 5 in 2007, sort by descending rad_ib, and get the top 3 trees
+top_3_trees <- tree_dat %>%
+  filter(stand %in% c("A5", "B5", "C5", "D5", "E5", "F5", "G5", "H5"), year == 2007) %>%
+  arrange(desc(rad_ib)) %>%
+  slice_head(n = 3)
+
+# View the tree IDs of the top 3 trees
+top_3_tree_ids <- top_3_trees$treeID
+print(top_3_tree_ids)
+```
+
+```{r}
+# Question 9: Filter data, select relevant columns, and find the smallest 3 trees in stand 3 in 2007
+smallest_trees_2007 <- tree_dat %>%
+  # Select the relevant columns
+  select(treeID, stand, year, rad_ib) %>%
+  # Filter for stand 3 and the year 2007, adjusting stand filtering to match your data format
+  filter(grepl("3", stand), year == 2007) %>%
+  # Use slice_min to find the smallest 3 trees based on radius at breast height
+  slice_min(order_by = rad_ib, n = 3)
+print(smallest_trees_2007)
+
+```
+
+```{r}
+#Question 10: Use select to remove the stand column. Use glimspe to show the dataset.
+
+tree_dat_no_stand <- tree_dat %>%
+  select(-stand)
+glimpse(tree_dat_no_stand)
+
+
+```
+
+```{r}
+#Question 11: Look at the help document for dplyr::select and examine the “Overview of selection features”. Identify an option (there are multiple) that would help select all columns with the string “ID” in the name. Using glimpse to view the remaining dataset
+
+tree_dat_ID_columns <- tree_dat %>%
+  select(contains("ID"))
+
+# Use glimpse to view the dataset with only columns containing "ID" in their name
+glimpse(tree_dat_ID_columns)
+```
+
+```{r}
+#Question 12: Find a selection pattern that captures all columns with either ‘ID’ or ‘stand’ in the name. Use glimpse to verify the selection.
+
+tree_dat_ID_or_stand <- tree_dat %>%
+  select(contains("ID") | contains("stand"))
+
+# Use glimpse to verify the selection
+glimpse(tree_dat_ID_or_stand)
+```
+
+```{r}
+#Question 13: Looking back at the data dictionary, rename rad_inc and inc to include _[unit] in the name. Unlike earlier options, be sure that this renaming is permanent, and stays with your data.frame (e.g. <-). Use glimpse to view your new data.frame.
+
+tree_dat <- tree_dat %>%
+    rename(rad_ib_mm = rad_ib,  
+           inc_mm = inc) 
+
+glimpse(tree_dat)
+
+
+```
+
+```{r}
+#Question 14: A key measurement in forestry in “basal area column”. The metric is computed with the formula:BA(m2) = 0.00007854⋅DBH^2 Where DBH is the diameter at breast height (cm). Use mutate to compute DBH in centimeters, and BA in m2 (HINT: Make sure rad_ib is in cm prior to computing the diameter!). What is the mean BA_m2 of the the species POTR in 2007?
+
+mean_BA_POTR_2007 <- tree_dat %>%
+  mutate(DBH_cm = (rad_ib_mm / 10) * 2,  
+         BA_m2 = 0.00007854 * (DBH_cm^2)) %>%  
+  filter(species == "POTR", year == 2007) %>%
+  summarise(mean_BA = mean(BA_m2, na.rm = TRUE))
+
+print(mean_BA_POTR_2007)
+
+```
+
+```{r}
+#Question 15: Lets say for the sake of our study, trees are not established until they are 5 years of age. Use if_else to add a boolean column to our dataset called established that is TRUE if the age is greater then 5 and FALSE if less then or equal to five. Once added, use count (see ?count) to determine how many records are from estabilshed trees?
+
+tree_dat <- tree_dat %>%
+  mutate(established = if_else(age > 5, TRUE, FALSE))
+established_count <- tree_dat %>%
+  count(established)
+print(established_count)
+```
+
+```{r}
+#Question 16: Use mutate and case_when to add a new column to you data.frame that classifies each tree into the proper DBH_class. Once done, limit your dataset to the year 2007 and report the number of each class with count.
+
+tree_dat <- tree_dat %>%
+  mutate(DBH = 2 * rad_ib_mm,  
+         DBH_class = case_when(
+           DBH < 30 ~ "Small",
+           DBH >= 30 & DBH < 60 ~ "Medium",
+           DBH >= 60 ~ "Large",
+           TRUE ~ NA_character_
+         ))
+
+tree_dat_2007 <- tree_dat %>%
+  filter(year == 2007)
+
+dbh_class_count_2007 <- tree_dat_2007 %>%
+  count(DBH_class)
+
+print(dbh_class_count_2007)
+```
+
+```{r}
+#Question 17: Compute the mean DBH (in cm) and standard deviation of DBH (in cm) for all trees in 2007. Explain the values you found and their statistical meaning.
+
+tree_dat_2007_summary <- tree_dat %>%
+  filter(year == 2007) %>%
+  summarize(
+    mean_DBH = mean(2 * rad_ib_mm),  # DBH in cm
+    sd_DBH = sd(2 * rad_ib_mm)       # Standard deviation of DBH in cm
+  )
+
+print(tree_dat_2007_summary)
+```
+
+```{r}
+#Question 18: Compute the per species mean tree age using only those ages recorded in 2003. Identify the three species with the oldest mean age.
+
+species_age_2003 <- tree_dat %>%
+  filter(year == 2003) %>%         
+  group_by(species) %>%            
+  summarize(mean_age = mean(age))  
+oldest_species <- species_age_2003 %>%
+  arrange(desc(mean_age)) %>%      
+  slice_head(n = 3)                
+print(oldest_species)
+```
+
+```{r}
+#Question 19: In a single summarize call, find the number of unique years with records in the data set along with the first and last year recorded?
+
+year_summary <- tree_dat %>%
+  summarize(
+    unique_years = n_distinct(year),  
+    first_year = min(year),           
+    last_year = max(year)             
+  )
+print(year_summary)
+
+```
+
+```{r}
+#Question 20: Determine the stands with the largest number of unique years recorded. Report all stands with largest (or tied with the largest) temporal record.
+
+stand_year_summary <- tree_dat %>%
+  group_by(stand) %>%                  
+  summarize(unique_years = n_distinct(year)) %>%  
+  arrange(desc(unique_years)) %>%      
+  filter(unique_years == first(unique_years))  
+
+print(stand_year_summary)
+```
+
+```{r}
+# Example: Count the number of trees in stand 1
+tree_count1 <- tree_dat %>%
+  filter(stand == "1") %>%  # Filter for stand 1 (adjust to match your dataset values)
+  count()
+
+# Print the result
+print(tree_count1)
+```
