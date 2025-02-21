@@ -145,9 +145,9 @@ print(fastest_growth_species)
 print(slowest_growth_species)
 ```
 
-#Image of the fastest growing species (replace 'your_image.png' with the actual filename)
+#Image of the fastest growing species 
 ```{r}
 knitr::include_graphics("/Users/OliviaGilpin/Desktop/ESS330/img/Thuja_occidentalis.png")
 ```
-![Thuja occidentalis - fastest growing species](img/Thuja_occidentalis.png)
+![Thuja occidentalis - fastest growing species]
 
